@@ -32,21 +32,21 @@ backend-todo-app/
 │   └── routes/
 │   │   ├── authRoutes.js        # Routes for user registration and login
 │   │   └── todoRoutes.js        # Routes for authenticated CRUD operations on todos
-│   ├── mailer.js                # 
+│   ├── mailer.js                # Email reminder service and provider config file 
 │   ├── prismaClient.js          # Prisma client database setup and table creation
-│   └── server.js                # Main server entry point that sets up routing and middleware
+│   └── server.js                # Main server entry point that sets up routing, middleware and runs the cron-job.
 │
 ├── Dockerfile                   # Docker container setup instructions
 ├── docker-compose.yaml          # Docker setup config file
 ├── package.json                 # Project dependencies and scripts
 ├── package-lock.json            # Lockfile for exact dependency versions
 ├── .gitignore                   # Files to be ignored when committing project publicly
-└── .env                         # File containing variables to add in the .env file in the root of your project
+└── .env                         # File containing passwords, secret keys and other private information not to be shared publicly
 ```
 
 ## 🔧 Environment Variables
 
-Create a `.env` file in the project root using the template below:
+Create a `.env` file in the project root using the template below:(Also shown in the .env.example file)
 
 | Variable | Description |
 |-----------|-------------|
@@ -66,9 +66,10 @@ Create a `.env` file in the project root using the template below:
   - **`controllers/`** (optional): A directory to organize logic and separate it from the routes if needed in the future.
   - **`middlewares/`**: Contains middleware for handling JWT-based authentication, protecting routes that require authentication.
   - **`routes/`**: Contains API routes for handling authentication and CRUD operations for todos.
+  - **`mailer.js`**: Configures the email reminder service and provider(gmail) using Nodemailer
   - **`prismaClient.js`**: Sets up the Prisma client for database interaction.
-  - **`server.js`**: The entry point for the Express.js application, which configures the app, routes, and middleware.
-- **`.env`**: Stores environment variables like `DATABASE_URL` and `JWT_SECRET`. These variables are used to configure Prisma, JWT, and database connections.
+  - **`server.js`**: The entry point for the Express.js application, which configures the app, routes and middleware. This file also runs the cron-job for the email reminder system.
+- **`.env`**: Stores environment variables like `DATABASE_URL`, `JWT_SECRET` and `EMAIL_PASS`. These variables are used to configure Prisma, JWT, Email reminder and database connections.
 - **`Dockerfile`**: The Dockerfile for building the Node.js application in a containerized environment.
 - **`docker-compose.yaml`**: Configuration for Docker Compose, which sets up both the Node.js app and PostgreSQL in separate containers.
 - **`package.json`**: Defines the Node.js dependencies and scripts used to run the application (e.g., `npm start`).
