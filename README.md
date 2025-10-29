@@ -37,7 +37,7 @@ backend-todo-app/
 ├── Dockerfile                   # Docker container setup instructions
 ├── docker-compose.yaml          # Docker setup config file
 ├── package.json                 # Project dependencies and scripts
-|-- package-lock.json            # Lockfile for exact dependency versions
+├── package-lock.json            # Lockfile for exact dependency versions
 ```
 
 ### Explanation of Key Directories and Files
