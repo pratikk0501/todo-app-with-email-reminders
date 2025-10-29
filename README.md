@@ -148,6 +148,7 @@ Open `http://localhost:5000` (or whatever PORT you choose) in your browser to se
 * Upon first time running the app, you may directly enter the todo page skipping the authentication. If so, logout, signup, then login to enter the app.
 * While signing up, if it throws the 'Service Unavailable' error, ignore it, go to the login window and submit.
 * Always input the due before field in the `yyyy:mm:dd hh:mm:ss` format or the app will not detect the date.
+* The email reminder system will only work if the app is running on the server side(backend).
 * Password must be atleast 8 characters and email should include '@'.
 
 ## 🎯 Conclusion
