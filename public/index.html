@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo App | Node.JS Express.JS SQLite</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styling.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+      integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+  </head>
+
+  <body>
+    <section id="auth">
+      <div>
+        <h2 className="sign-up-text">Login</h2>
+        <p>Create an account!</p>
+      </div>
+
+      <p id="error" style="display: none"></p>
+      <input id="emailInput" placeholder="Email" />
+      <input id="passwordInput" placeholder="********" type="password" />
+      <button id="authBtn" onclick="authenticate()">Submit</button>
+      <hr />
+      <div class="register-content">
+        <p>Don&apos;t have an account?</p>
+        <button onclick="toggleIsRegister()" id="registerBtn">Sign up</button>
+      </div>
+    </section>
+    <header style="display: none">
+      <h1 class="text-gradient">You have 0 open tasks.</h1>
+      <button onclick="logout()">Logout</button>
+    </header>
+    <nav style="display: none" class="tab-container">
+      <button onclick="changeTab('All')" class="tab-button selected-tab">
+        <h4>All <span>(0)</span></h4>
+      </button>
+      <button onclick="changeTab('Open')" class="tab-button">
+        <h4>Open <span>(0)</span></h4>
+      </button>
+      <button onclick="changeTab('Complete')" class="tab-button">
+        <h4>Complete <span>(0)</span></h4>
+      </button>
+      <hr />
+    </nav>
+    <main style="display: none"></main>
+  </body>
+  <script>
+    let token = localStorage.getItem("token");
+
+    let isLoading = false;
+    let isAuthenticating = false;
+    let isRegistration = false;
+    let selectedTab = "All";
+    let todos = [];
+
+    const apiBase = "/";
+
+    // elements
+    const nav = document.querySelector("nav");
+    const header = document.querySelector("header");
+    const main = document.querySelector("main");
+    const navElements = document.querySelectorAll(".tab-button");
+    const authContent = document.getElementById("auth");
+    const textError = document.getElementById("error");
+    const email = document.getElementById("emailInput");
+    const password = document.getElementById("passwordInput");
+    const registerBtn = document.getElementById("registerBtn");
+    const authBtn = document.getElementById("authBtn");
+    const addTodoBtn = document.getElementById("addTodoBtn");
+    // const deleteBtn = document.getElementById('')
+    // const updateBtn =
+
+    // PAGE RENDERING LOGIC
+    async function showDashboard() {
+      nav.style.display = "block";
+      header.style.display = "flex";
+      main.style.display = "flex";
+      authContent.style.display = "none";
+
+      await fetchTodos();
+    }
+
+    function updateHeaderText() {
+      const todosLength = todos?.filter((val) => !val.completed).length;
+      const newString =
+        todosLength === 1
+          ? `You have 1 open task.`
+          : `You have ${todosLength} open tasks.`;
+      header.querySelector("h1").innerText = newString;
+    }
+
+    function updateNavCount() {
+      navElements.forEach((ele) => {
+        const btnText = ele.innerText.split(" ")[0];
+
+        // filter todos in here
+        const count = todos?.filter((val) => {
+          if (btnText === "All") {
+            return true;
+          }
+          return btnText === "Complete" ? val.completed : !val.completed;
+        }).length;
+
+        // target inside space and update value
+        ele.querySelector("span").innerText = `(${count})`;
+      });
+    }
+
+    function changeTab(tab) {
+      selectedTab = tab;
+      navElements.forEach((val) => {
+        if (val.innerText.includes(tab)) {
+          val.classList.add("selected-tab");
+        } else {
+          val.classList.remove("selected-tab");
+        }
+      });
+      renderTodos();
+    }
+
+    function renderTodos() {
+      // need to add filtering logic in here
+
+      updateNavCount();
+      updateHeaderText();
+
+      let todoList = ``;
+      todos
+        ?.filter((val) => {
+          return selectedTab === "All"
+            ? true
+            : selectedTab === "Complete"
+            ? val.completed
+            : !val.completed;
+        })
+        .forEach((todo, todoIndex) => {
+          const taskIndex = todo.id;
+          const { title, description, deadline } = todo;
+          const deadlineDate = new Date(deadline);
+          const currentDate = new Date();
+          const diffMs = deadlineDate - currentDate;
+
+          let timeRemainingText = "";
+
+          if (diffMs <= 0) {
+            timeRemainingText = "Overdue";
+          } else {
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const diffHours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+            const diffMinutes = Math.floor((diffMs / (1000 * 60)) % 60);
+
+            if (diffDays > 0) {
+              timeRemainingText = `${diffDays} day${diffDays > 1 ? "s" : ""}`;
+            } else if (diffHours > 0) {
+              timeRemainingText = `${diffHours} hour${
+                diffHours > 1 ? "s" : ""
+              }`;
+            } else {
+              timeRemainingText = `${diffMinutes} minute${
+                diffMinutes > 1 ? "s" : ""
+              }`;
+            }
+          }
+
+          todoList += `
+            <div class="todo-item">
+              <h3><b>${title}</b></h3>
+              <p>${description}</p>
+              <p>Time remaining: ${timeRemainingText}</p>
+            </div>
+            <div class="todo-buttons">
+              <button onclick="updateTodo(${taskIndex})" ${
+            todo.completed ? "disabled" : ""
+          }>
+                <h6>Done</h6>
+              </button>
+              <button onclick="deleteTodo(${taskIndex})">
+                <h6>Delete</h6>
+              </button>
+            </div>
+            `;
+        });
+      todoList += `
+        <div class="input-container" id="addTodoBtn" style="display: flex">
+          <button onclick="showInputDiv()">
+            Add Task <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <div class="input-description" id="addTodoDiv" style="display: none">
+          <input id="todoTitle" placeholder="Add task title" />
+          <input id="todoDescription" placeholder="Add task description" />
+          <input id="todoDeadline" placeholder="Due before(yyyy-mm-dd hh:mm:ss)" />
+          <div>
+            <button onclick="addTodo()">
+              Submit <i class="fa-solid fa-check"></i>
+            </button>
+            <button onclick="showInputDiv()">
+              Cancel <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+        `;
+      main.innerHTML = todoList;
+    }
+
+    // showDashboard()
+
+    // AUTH LOGIC
+
+    async function toggleIsRegister() {
+      isRegistration = !isRegistration;
+      registerBtn.innerText = isRegistration ? "Sign in" : "Sign up";
+      document.querySelector("#auth > div h2").innerText = isRegistration
+        ? "Sign Up"
+        : "Login";
+      document.querySelector(".register-content p").innerText = isRegistration
+        ? "Already have an account?"
+        : "Don't have an account?";
+      document.querySelector(".register-content button").innerText =
+        isRegistration ? "Sign in" : "Sign up";
+    }
+
+    async function authenticate() {
+      // access email and pass values
+      const emailVal = email.value;
+      const passVal = password.value;
+
+      // guard clauses... if authenticating, return
+      if (
+        isLoading ||
+        isAuthenticating ||
+        !emailVal ||
+        !passVal ||
+        passVal.length < 6 ||
+        !emailVal.includes("@")
+      ) {
+        return;
+      }
+
+      // reset error and set isAuthenticating to true
+      error.style.display = "none";
+      isAuthenticating = true;
+      authBtn.innerText = "Authenticating...";
+
+      try {
+        let data;
+        if (isRegistration) {
+          // register an account
+          const response = await fetch(apiBase + "auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: emailVal, password: passVal }),
+          });
+          data = await response.json();
+        } else {
+          // login an account
+          const response = await fetch(apiBase + "auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: emailVal, password: passVal }),
+          });
+          data = await response.json();
+        }
+
+        if (data.token) {
+          token = data.token;
+          localStorage.setItem("token", token);
+
+          // authenicating into loading
+          authBtn.innerText = "Loading...";
+
+          // fetch todos
+          await fetchTodos();
+
+          // show dashboard
+          showDashboard();
+        } else {
+          throw Error("❌ Failed to authenticate...");
+        }
+      } catch (err) {
+        console.log(err.message);
+        error.innerText = err.message;
+        error.style.display = "block";
+      } finally {
+        authBtn.innerText = "Submit";
+        isAuthenticating = false;
+      }
+    }
+
+    function logout() {
+      // wipe states and clear cached token
+      token = null;
+      localStorage.removeItem("token");
+      isLoading = false;
+      isAuthenticating = false;
+      isRegistration = false;
+      selectedTab = "All";
+      todos = [];
+      // reset UI
+      nav.style.display = "none";
+      header.style.display = "none";
+      main.style.display = "none";
+      authContent.style.display = "block";
+      authBtn.innerText = "Submit";
+      email.value = "";
+      password.value = "";
+      textError.style.display = "none";
+      textError.innerText = "";
+    }
+
+    // CRUD LOGIC
+
+    async function fetchTodos() {
+      isLoading = true;
+      const response = await fetch(apiBase + "todos", {
+        headers: { Authorization: token },
+      });
+      const todosData = await response.json();
+      todos = todosData;
+      isLoading = false;
+      renderTodos();
+    }
+
+    async function updateTodo(index) {
+      // set task complete status to true
+      await fetch(apiBase + "todos" + "/" + index, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify({
+          task: todos.find((val) => val.id === index).task,
+          completed: 1,
+        }),
+      });
+      fetchTodos();
+    }
+
+    async function deleteTodo(index) {
+      // set task complete status to true
+      await fetch(apiBase + "todos" + "/" + index, {
+        method: "DELETE",
+        headers: {
+          Authorization: token,
+        },
+      });
+      fetchTodos();
+    }
+
+    async function addTodo() {
+      // have to access this val later as it's rendered with js
+      // add todo with title, description, deadline
+      const todoTitle = document.getElementById("todoTitle");
+      const todoDescription = document.getElementById("todoDescription");
+      const todoDeadline = document.getElementById("todoDeadline");
+      const task = {
+        title: todoTitle.value,
+        description: todoDescription.value,
+        deadline: new Date(todoDeadline.value).toISOString(),
+      };
+
+      if (!task) {
+        return;
+      }
+
+      await fetch(apiBase + "todos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify({ task }),
+      });
+      todoTitle.value = "";
+      todoDescription.value = "";
+      todoDeadline.value = "";
+      fetchTodos();
+      showInputDiv(); // hide input div after adding task
+    }
+
+    function showInputDiv() {
+      const addTodoDiv = document.getElementById("addTodoDiv");
+      if (addTodoDiv.style.display === "none") {
+        addTodoDiv.style.display = "flex";
+      } else {
+        addTodoDiv.style.display = "none";
+      }
+      // remove display of add task button
+      const addTodoBtn = document.getElementById("addTodoBtn");
+      if (addTodoBtn.style.display === "flex") {
+        addTodoBtn.style.display = "none";
+      } else {
+        addTodoBtn.style.display = "flex";
+      }
+    }
+
+    // UTILITY FUNCTIONS
+
+    // load page and read local storage for key
+
+    // default to login screen
+
+    // if is authenticated, show todo app
+    if (token) {
+      async function run() {
+        await fetchTodos();
+        showDashboard();
+      }
+      run();
+    }
+  </script>
+</html>
