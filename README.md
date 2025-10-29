@@ -94,18 +94,22 @@ This project structure and workflow will help organize your code and make it eas
 
 ```bash
 git clone https://github.com/pratikk0501/todo-app-with-email-reminders.git
-cd backend-todo-app
+cd your-project-name
 ```
 
-2. **Generate the Prisma Client**:
+2. **Copy .env.example and enter real values**
+
+`cp .env.example .env`
+
+3. **Generate the Prisma Client**:
 
 `npx prisma generate`
 
-3. **Build your docker images**:
+4. **Build your docker images**:
 
 `docker compose build`
 
-4. **Create PostgreSQL migrations and apply them**:
+5. **Create PostgreSQL migrations and apply them**:
 
 `docker compose run app npx prisma migrate dev --name init`
 
@@ -113,7 +117,7 @@ _Also_ - to run/apply migrations if necessary:
 
 `docker-compose run app npx prisma migrate deploy`
 
-5. **Boot up 2x docker containers**:
+6. **Boot up 2x docker containers**:
 
 `docker compose up`
 
@@ -123,23 +127,23 @@ _or_
 
 If you want to boot it up without it commandeering your terminal (you'll have to stop if via Docker Desktop though).
 
-6. **To login to docker PostgreSQL database (from a new terminal instance while docker containers are running) where you can run SQL commands and modify database!**:
+7. **To login to docker PostgreSQL database (from a new terminal instance while docker containers are running) where you can run SQL commands and modify database!**:
 
 `docker exec -it postgres-db-zeidler psql -U postgres -d todoapp`
 
-7. **To stop Docker containers**:
+8. **To stop Docker containers**:
 
 `docker compose down`
 
-8. **To delete all docker containers**:
+9. **To delete all docker containers**:
 
 `docker system prune`
 
-9. **Access the App**:
+10. **Access the App**:
 
 Open `http://localhost:5000` (or whatever PORT you choose) in your browser to see the frontend. You can register, log in, log out and manage your todo list from there.
 
-## ⚠️ Important Notes
+## ⚠️ Important Note
 
 * Upon first time running the app, you may directly enter the todo page skipping the authentication. If so, logout, signup, then login to enter the app.
 * While signing up, if it throws the 'Service Unavailable' error, ignore it, go to the login window and submit.
